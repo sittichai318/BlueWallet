@@ -110,7 +110,7 @@ const WalletsImport = () => {
         <BlueButtonLink
           title={loc.wallets.import.scan_qr}
           onPress={() => {
-            navigate('ScanQrAddress', { onBarScanned });
+            navigate('ScanQrAddress', { onBarScanned, showFileImportButton: true });
           }}
         />
       </View>
