@@ -210,6 +210,7 @@ const CreateWalletStackNavigator = createStackNavigator({
   },
   ImportWallet: {
     screen: ImportWallet,
+    routeName: 'ImportWallet',
   },
   PleaseBackup: {
     screen: PleaseBackup,

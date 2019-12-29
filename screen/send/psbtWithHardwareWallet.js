@@ -1,6 +1,6 @@
 /* global alert */
 import React, { Component } from 'react';
-import { ActivityIndicator, TouchableOpacity, View, Dimensions, Image, TextInput, Clipboard, Linking } from 'react-native';
+import { ActivityIndicator, TouchableOpacity, ScrollView, View, Dimensions, Image, TextInput, Clipboard, Linking } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { Icon, Text } from 'react-native-elements';
 import {
@@ -13,8 +13,11 @@ import {
   BlueCopyToClipboardButton,
 } from '../../BlueComponents';
 import PropTypes from 'prop-types';
+import Share from 'react-native-share';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { RNCamera } from 'react-native-camera';
+import RNFS from 'react-native-fs';
+import DocumentPicker from 'react-native-document-picker';
 let loc = require('../../loc');
 let EV = require('../../events');
 let BlueElectrum = require('../../BlueElectrum');
@@ -50,14 +53,14 @@ export default class PsbtWithHardwareWallet extends Component {
     this.state = {
       isLoading: false,
       renderScanner: false,
-      qrCodeHeight: height > width ? width - 40 : width / 2,
+      qrCodeHeight: height > width ? width - 40 : width / 3,
       memo: props.navigation.getParam('memo'),
       psbt: props.navigation.getParam('psbt'),
       fromWallet: props.navigation.getParam('fromWallet'),
     };
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     console.log('send/psbtWithHardwareWallet - componentDidMount');
   }
 
@@ -185,6 +188,27 @@ export default class PsbtWithHardwareWallet extends Component {
     );
   }
 
+  exportPSBT = () => {
+    Share.open({ url: `data:text/psbt;base64,${this.state.psbt.toBase64()}` }).catch(error => console.log(error));
+  };
+
+  openSignedTransaction = async () => {
+    try {
+      const res = await DocumentPicker.pick();
+      const file = await RNFS.readFile(res.uri);
+      const fileParsed = JSON.parse(file);
+      if (fileParsed) {
+        this.onBarCodeRead({ data: fileParsed });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      if (!DocumentPicker.isCancel(err)) {
+        alert('The selected file does not contain a signed transaction that can be imported.');
+      }
+    }
+  };
+
   render() {
     if (this.state.isLoading) {
       return (
@@ -200,7 +224,7 @@ export default class PsbtWithHardwareWallet extends Component {
 
     return (
       <SafeBlueArea style={{ flex: 1 }}>
-        <View style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <ScrollView centerContent contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'center', paddingTop: 16, paddingBottom: 16 }}>
             <BlueCard>
               <BlueText>This is partially signed bitcoin transaction (PSBT). Please finish signing it with your hardware wallet.</BlueText>
@@ -213,14 +237,42 @@ export default class PsbtWithHardwareWallet extends Component {
                 ecl={'L'}
               />
               <BlueSpacing20 />
-              <BlueButton onPress={() => this.setState({ renderScanner: true })} title={'Scan signed transaction'} />
+              <BlueButton
+                icon={{
+                  name: 'qrcode',
+                  type: 'font-awesome',
+                  color: BlueApp.settings.buttonTextColor,
+                }}
+                onPress={() => this.setState({ renderScanner: true })}
+                title={'Scan Signed Transaction'}
+              />
+              <BlueSpacing20 />
+              <BlueButton
+                icon={{
+                  name: 'file-import',
+                  type: 'material-community',
+                  color: BlueApp.settings.buttonTextColor,
+                }}
+                onPress={this.openSignedTransaction}
+                title={'Open Signed Transaction'}
+              />
+              <BlueSpacing20 />
+              <BlueButton
+                icon={{
+                  name: 'share-alternative',
+                  type: 'entypo',
+                  color: BlueApp.settings.buttonTextColor,
+                }}
+                onPress={this.exportPSBT}
+                title={'Export'}
+              />
               <BlueSpacing20 />
               <View style={{ justifyContent: 'center', alignItems: 'center' }}>
                 <BlueCopyToClipboardButton stringToCopy={this.state.psbt.toBase64()} displayText={'Copy to Clipboard'} />
               </View>
             </BlueCard>
           </View>
-        </View>
+        </ScrollView>
       </SafeBlueArea>
     );
   }
